@@ -16,15 +16,17 @@ class Redis
     def initialize(key, *args)
       super(key, *args)
       @options[:start] ||= 0
-      @redis.setnx(key, @options[:start]) unless @options[:start] == 0 || @options[:init] === false
+      setnx = @redis.setnx(key, @options[:start]) unless @options[:start] == 0 || @options[:init] === false
+      @redis.expire(key, @options[:ttl]) if setnx and @options[:ttl].is_a?(Fixnum)
     end
 
     # Reset the counter to its starting value.  Not atomic, so use with care.
     # Normally only useful if you're discarding all sub-records associated
     # with a parent and starting over (for example, restarting a game and
     # disconnecting all players).
-    def reset(to=options[:start])
+    def reset(to=options[:start], ttl=options[:ttl])
       redis.set key, to.to_i
+      redis.expire(key, ttl) if ttl.is_a?(Fixnum)
       true  # hack for redis-rb regression
     end
 
@@ -32,8 +34,9 @@ class Redis
     # Use this to "reap" the counter and save it somewhere else. This is
     # atomic in that no increments or decrements are lost if you process
     # the returned value.
-    def getset(to=options[:start])
+    def getset(to=options[:start], ttl=options[:ttl])
       redis.getset(key, to.to_i).to_i
+      redis.expire(key, ttl) if ttl.is_a?(Fixnum)
     end
 
     # Returns the current value of the counter.  Normally just calling the
