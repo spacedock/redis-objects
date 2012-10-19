@@ -55,6 +55,7 @@ class Redis
     # method is aliased as incr() for brevity.
     def increment(by=1, &block)
       val = redis.incrby(key, by).to_i
+      redis.expire(key, options[:ttl]) if options[:ttl].is_a?(Fixnum) and redis.ttl(key) == -1
       block_given? ? rewindable_block(:decrement, val, &block) : val
     end
     alias_method :incr, :increment
@@ -66,6 +67,7 @@ class Redis
     # method is aliased as incr() for brevity.
     def decrement(by=1, &block)
       val = redis.decrby(key, by).to_i
+      redis.expire(key, options[:ttl]) if options[:ttl].is_a?(Fixnum) and redis.ttl(key) == -1
       block_given? ? rewindable_block(:increment, val, &block) : val
     end
     alias_method :decr, :decrement
