@@ -13,14 +13,16 @@ class Redis
     attr_reader :key, :options, :redis
     def initialize(key, *args)
       super(key, *args)
-      @redis.setnx(key, to_redis(@options[:default])) if @options[:default]
+      setnx = @redis.setnx(key, to_redis(@options[:default])) if @options[:default]
+      @redis.expire(key, @options[:ttl]) if setnx and @options[:ttl].is_a?(Fixnum)
     end
 
-    def value=(val)
+    def value=(val, ttl=options[:ttl])
       if val.nil?
         delete
       else
         redis.set key, to_redis(val)
+        redis.expire(key, ttl) if ttl.is_a?(Fixnum)
       end
     end
     alias_method :set, :value=
